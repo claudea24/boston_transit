@@ -16,3 +16,4 @@ dist/
 
 # Screenshots captured during local e2e runs
 /*.png
+.vercel/
