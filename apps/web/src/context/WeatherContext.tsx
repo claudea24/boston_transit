@@ -110,7 +110,13 @@ export function WeatherProvider({ children }: { children: React.ReactNode }) {
           }
         }
       )
-      .subscribe();
+      .subscribe((status, error) => {
+        if (status === "SUBSCRIBED") {
+          console.log("[realtime] weather_data SUBSCRIBED");
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          console.warn(`[realtime] weather_data ${status}`, error);
+        }
+      });
 
     return () => {
       cancelled = true;

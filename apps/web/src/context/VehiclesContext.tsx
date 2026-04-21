@@ -88,7 +88,13 @@ export function VehiclesProvider({ children }: { children: React.ReactNode }) {
           });
         }
       )
-      .subscribe();
+      .subscribe((status, error) => {
+        if (status === "SUBSCRIBED") {
+          console.log("[realtime] vehicle_positions SUBSCRIBED");
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          console.warn(`[realtime] vehicle_positions ${status}`, error);
+        }
+      });
 
     const pollTimer = setInterval(() => {
       if (cancelled) return;

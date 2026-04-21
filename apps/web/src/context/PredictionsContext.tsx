@@ -127,7 +127,13 @@ export function PredictionsProvider({ children }: { children: React.ReactNode })
           });
         }
       )
-      .subscribe();
+      .subscribe((status, error) => {
+        if (status === "SUBSCRIBED") {
+          console.log("[realtime] stop_predictions SUBSCRIBED");
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          console.warn(`[realtime] stop_predictions ${status}`, error);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
