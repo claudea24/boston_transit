@@ -1,138 +1,296 @@
-import { bboxAroundPoint, centerOfBounds, locationKey } from "./geo";
-import type { Bounds, VehicleMode, VehiclePosition } from "./types";
+import GtfsRealtimeBindings from "gtfs-realtime-bindings";
+import { bboxAroundPoint, centerOfBounds, haversineMeters } from "./geo.js";
+import type { Bounds, Coordinate, VehicleMode, VehiclePosition } from "./types.js";
 
-function seededFraction(seed: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < seed.length; index++) {
-    hash ^= seed.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return ((hash >>> 0) % 10_000) / 10_000;
+interface VehicleFeedConfig {
+  id: string;
+  agencyId: string;
+  label: string;
+  mode: VehicleMode;
+  url: string;
+  center: Coordinate;
+  radiusKm: number;
+  resolveMode?: (routeId: string | null) => VehicleMode;
 }
 
-function routeTypeToMode(routeType?: number): VehicleMode {
-  switch (routeType) {
-    case 0:
-      return "tram";
-    case 1:
-    case 2:
-      return "rail";
-    case 4:
-      return "ferry";
-    case 5:
-      return "cable_car";
-    case 3:
-      return "bus";
+function modeForMbtaRoute(routeId: string | null): VehicleMode {
+  if (!routeId) return "bus";
+  if (routeId === "Mattapan") return "tram";
+  if (/^(Red|Blue|Orange|Green-[A-Z])$/.test(routeId)) return "rail";
+  if (routeId.startsWith("CR-")) return "rail";
+  if (routeId.startsWith("Boat-")) return "ferry";
+  return "bus";
+}
+
+interface VehicleFeedConfigInput {
+  id?: unknown;
+  agencyId?: unknown;
+  label?: unknown;
+  mode?: unknown;
+  url?: unknown;
+  center?: {
+    latitude?: unknown;
+    longitude?: unknown;
+  } | null;
+  radiusKm?: unknown;
+}
+
+const VEHICLE_FEEDS: VehicleFeedConfig[] = [
+  {
+    id: "mbta",
+    agencyId: "o-drt-massbayareatransportationauthority",
+    label: "MBTA",
+    mode: "bus",
+    url: "https://cdn.mbta.com/realtime/VehiclePositions.pb",
+    center: { latitude: 42.3601, longitude: -71.0589 },
+    radiusKm: 80,
+    resolveMode: modeForMbtaRoute,
+  },
+];
+
+let cachedVehicleFeeds: VehicleFeedConfig[] | null = null;
+
+function parseVehicleMode(value: unknown): VehicleMode | null {
+  switch (value) {
+    case "bus":
+    case "rail":
+    case "tram":
+    case "ferry":
+    case "cable_car":
+    case "other":
+      return value;
     default:
-      return "other";
+      return null;
   }
 }
 
-function syntheticVehicles(bounds: Bounds): VehiclePosition[] {
-  const { latitude, longitude } = centerOfBounds(bounds);
-  const key = locationKey(latitude, longitude);
-  const now = new Date();
-  const routeTemplates = [
-    { id: "red-line", label: "Red Line", color: "#2563eb", mode: "rail" as const },
-    { id: "b12", label: "B12", color: "#f97316", mode: "bus" as const },
-    { id: "green-loop", label: "Green Loop", color: "#16a34a", mode: "tram" as const },
-  ];
+function parseFeedConfig(input: VehicleFeedConfigInput): VehicleFeedConfig | null {
+  const mode = parseVehicleMode(input.mode);
+  const latitude = input.center?.latitude;
+  const longitude = input.center?.longitude;
 
-  return routeTemplates.map((route, index) => {
-    const offsetA = seededFraction(`${key}-${route.id}-a`);
-    const offsetB = seededFraction(`${key}-${route.id}-b`);
-    return {
-      agencyId: "demo-agency",
-      vehicleId: `${key}-${route.id}`,
-      routeId: route.id,
-      tripId: `${route.id}-${now.getUTCHours()}`,
-      routeShortName: route.label,
-      routeColor: route.color,
-      mode: route.mode,
-      latitude: latitude + (offsetA - 0.5) * 0.08 + index * 0.005,
-      longitude: longitude + (offsetB - 0.5) * 0.1 - index * 0.004,
-      bearing: Math.round(offsetA * 360),
-      speedKmh: route.mode === "rail" ? 46 : route.mode === "tram" ? 28 : 22,
-      delaySeconds: index === 1 ? 180 : 0,
-      headsign: index === 0 ? "Downtown" : "Crosstown",
-      updatedAt: now.toISOString(),
-    };
+  if (
+    typeof input.id !== "string" ||
+    typeof input.agencyId !== "string" ||
+    typeof input.label !== "string" ||
+    typeof input.url !== "string" ||
+    mode == null ||
+    typeof latitude !== "number" ||
+    typeof longitude !== "number" ||
+    typeof input.radiusKm !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    id: input.id,
+    agencyId: input.agencyId,
+    label: input.label,
+    mode,
+    url: input.url,
+    center: { latitude, longitude },
+    radiusKm: input.radiusKm,
+  };
+}
+
+function resolveEnvTemplate(url: string, feedId: string): string | null {
+  const pattern = /\{\{([A-Z0-9_]+)\}\}/g;
+  const missing: string[] = [];
+  const resolved = url.replace(pattern, (_match, name: string) => {
+    const value = process.env[name];
+    if (!value) {
+      missing.push(name);
+      return "";
+    }
+    return value;
+  });
+
+  if (missing.length > 0) {
+    console.warn(
+      `Skipping GTFS-RT feed "${feedId}" — missing env var(s): ${missing.join(", ")}`
+    );
+    return null;
+  }
+
+  return resolved;
+}
+
+function resolveFeedUrls(feeds: VehicleFeedConfig[]): VehicleFeedConfig[] {
+  return feeds.flatMap((feed) => {
+    const resolvedUrl = resolveEnvTemplate(feed.url, feed.id);
+    return resolvedUrl == null ? [] : [{ ...feed, url: resolvedUrl }];
+  });
+}
+
+function loadConfiguredFeeds(): VehicleFeedConfig[] {
+  if (cachedVehicleFeeds) {
+    return cachedVehicleFeeds;
+  }
+
+  const raw = process.env.GTFS_RT_FEEDS_JSON;
+  if (!raw) {
+    cachedVehicleFeeds = resolveFeedUrls(VEHICLE_FEEDS);
+    console.log(`Loaded ${cachedVehicleFeeds.length} GTFS-RT vehicle feed configs`);
+    return cachedVehicleFeeds;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      throw new Error("GTFS_RT_FEEDS_JSON must be a JSON array");
+    }
+
+    const merged = new Map(VEHICLE_FEEDS.map((feed) => [feed.id, feed]));
+    for (const item of parsed) {
+      const feed = parseFeedConfig(item as VehicleFeedConfigInput);
+      if (!feed) {
+        console.warn("Skipping invalid GTFS_RT_FEEDS_JSON feed entry", item);
+        continue;
+      }
+      merged.set(feed.id, feed);
+    }
+
+    cachedVehicleFeeds = resolveFeedUrls([...merged.values()]);
+    console.log(`Loaded ${cachedVehicleFeeds.length} GTFS-RT vehicle feed configs`);
+    return cachedVehicleFeeds;
+  } catch (error) {
+    console.error("Failed to parse GTFS_RT_FEEDS_JSON; using default GTFS-RT feeds", error);
+    cachedVehicleFeeds = resolveFeedUrls(VEHICLE_FEEDS);
+    return cachedVehicleFeeds;
+  }
+}
+
+function isWithinBounds(point: Coordinate, bounds: Bounds) {
+  return (
+    point.latitude >= bounds.south &&
+    point.latitude <= bounds.north &&
+    point.longitude >= bounds.west &&
+    point.longitude <= bounds.east
+  );
+}
+
+function selectFeedsForBounds(bounds: Bounds): VehicleFeedConfig[] {
+  const viewportCenter = centerOfBounds(bounds);
+  const feeds = loadConfiguredFeeds();
+
+  return feeds.filter((feed) => {
+    const distanceMeters = haversineMeters(viewportCenter, feed.center);
+    return distanceMeters <= feed.radiusKm * 1000;
+  });
+}
+
+function toIsoTimestamp(timestamp?: Long | number | null) {
+  if (timestamp == null) {
+    return new Date().toISOString();
+  }
+
+  const seconds =
+    typeof timestamp === "number" ? timestamp : Number(timestamp.toString());
+  if (!Number.isFinite(seconds)) {
+    return new Date().toISOString();
+  }
+
+  return new Date(seconds * 1000).toISOString();
+}
+
+async function fetchFeedVehicles(
+  feed: VehicleFeedConfig,
+  bounds: Bounds
+): Promise<VehiclePosition[]> {
+  const response = await fetch(feed.url, { cache: "no-store" });
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `${feed.label} GTFS-RT request failed: ${response.status} ${response.statusText} - ${body.slice(0, 200)}`
+    );
+  }
+
+  const binary = new Uint8Array(await response.arrayBuffer());
+  const message = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(binary) as {
+    entity?: Array<{
+      id?: string | null;
+      vehicle?: {
+        position?: {
+          latitude?: number | null;
+          longitude?: number | null;
+          bearing?: number | null;
+          speed?: number | null;
+          timestamp?: Long | number | null;
+        } | null;
+        trip?: {
+          tripId?: string | null;
+          routeId?: string | null;
+          currentStopSequence?: number | null;
+        } | null;
+        vehicle?: {
+          id?: string | null;
+          label?: string | null;
+        } | null;
+      } | null;
+    }>;
+  };
+
+  return (message.entity ?? []).flatMap((entity) => {
+    const position = entity.vehicle?.position;
+    const latitude = position?.latitude;
+    const longitude = position?.longitude;
+    if (typeof latitude !== "number" || typeof longitude !== "number") {
+      return [];
+    }
+
+    if (!isWithinBounds({ latitude, longitude }, bounds)) {
+      return [];
+    }
+
+    const trip = entity.vehicle?.trip;
+    const descriptor = entity.vehicle?.vehicle;
+    const vehicleId =
+      descriptor?.id ??
+      descriptor?.label ??
+      entity.id ??
+      `${feed.id}-${trip?.tripId ?? "vehicle"}-${latitude.toFixed(5)}-${longitude.toFixed(5)}`;
+
+    return [
+      {
+        agencyId: feed.agencyId,
+        vehicleId,
+        routeId: trip?.routeId ?? undefined,
+        tripId: trip?.tripId ?? undefined,
+        routeShortName: trip?.routeId ?? descriptor?.label ?? undefined,
+        mode: feed.resolveMode ? feed.resolveMode(trip?.routeId ?? null) : feed.mode,
+        latitude,
+        longitude,
+        bearing: position?.bearing ?? undefined,
+        speedKmh:
+          typeof position?.speed === "number" ? position.speed * 3.6 : undefined,
+        stopSequence: trip?.currentStopSequence ?? undefined,
+        updatedAt: toIsoTimestamp(position?.timestamp),
+      } satisfies VehiclePosition,
+    ];
   });
 }
 
 export async function fetchVehiclesByBbox(bounds: Bounds): Promise<VehiclePosition[]> {
-  const transitlandApiKey = process.env.TRANSITLAND_API_KEY;
-  if (!transitlandApiKey) {
-    return syntheticVehicles(bounds);
+  const matchingFeeds = selectFeedsForBounds(bounds);
+  if (matchingFeeds.length === 0) {
+    return [];
   }
 
-  const bbox = [bounds.west, bounds.south, bounds.east, bounds.north].join(",");
+  const settled = await Promise.allSettled(
+    matchingFeeds.map((feed) => fetchFeedVehicles(feed, bounds))
+  );
 
-  try {
-    const url = new URL("https://transit.land/api/v2/rest/vehicles");
-    url.searchParams.set("bbox", bbox);
-    url.searchParams.set("api_key", transitlandApiKey);
-    const response = await fetch(url, { cache: "no-store" });
-    if (!response.ok) {
-      return syntheticVehicles(bounds);
+  const vehicles: VehiclePosition[] = [];
+  for (const result of settled) {
+    if (result.status === "fulfilled") {
+      vehicles.push(...result.value);
+      continue;
     }
-    const payload = (await response.json()) as {
-      vehicles?: Array<{
-        agency?: { onestop_id?: string };
-        vehicle_id?: string;
-        route_id?: string;
-        stop_sequence?: number;
-        timestamp?: string;
-        headsign?: string;
-        geometry?: { coordinates?: [number, number] };
-        trip_id?: string;
-        vehicle?: { position?: { lat?: number; lon?: number; bearing?: number; speed?: number } };
-        route?: {
-          onestop_id?: string;
-          route_short_name?: string;
-          route_color?: string;
-          route_type?: number;
-        };
-        trip_update?: { delay?: number };
-      }>;
-    };
 
-    const mapped = (payload.vehicles ?? [])
-      .flatMap((vehicle) => {
-        const position = vehicle.vehicle?.position;
-        const coordinates = vehicle.geometry?.coordinates;
-        const latitude = position?.lat ?? coordinates?.[1];
-        const longitude = position?.lon ?? coordinates?.[0];
-        if (
-          typeof latitude !== "number" ||
-          typeof longitude !== "number"
-        ) {
-          return [];
-        }
-        return [{
-          agencyId: vehicle.agency?.onestop_id ?? "unknown-agency",
-          vehicleId: vehicle.vehicle_id ?? `${locationKey(latitude, longitude)}-${vehicle.route_id ?? "route"}`,
-          routeId: vehicle.route?.onestop_id ?? vehicle.route_id ?? undefined,
-          tripId: vehicle.trip_id,
-          routeShortName: vehicle.route?.route_short_name ?? vehicle.route_id ?? undefined,
-          routeColor: `#${vehicle.route?.route_color ?? "3b82f6"}`,
-          headsign: vehicle.headsign,
-          mode: routeTypeToMode(vehicle.route?.route_type),
-          latitude,
-          longitude,
-          bearing: position?.bearing,
-          speedKmh: typeof position?.speed === "number" ? position.speed * 3.6 : undefined,
-          delaySeconds: vehicle.trip_update?.delay ?? undefined,
-          stopSequence: vehicle.stop_sequence,
-          updatedAt: new Date(vehicle.timestamp ?? Date.now()).toISOString(),
-        } satisfies VehiclePosition];
-      });
-
-    return mapped.length > 0 ? mapped : syntheticVehicles(bounds);
-  } catch (error) {
-    console.error("fetchVehiclePositions fell back to synthetic vehicles", error);
-    return syntheticVehicles(bounds);
+    console.error("Vehicle feed fetch failed", result.reason);
   }
+
+  return vehicles;
 }
 
 export async function fetchVehiclePositions(

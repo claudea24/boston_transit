@@ -1,5 +1,5 @@
-import { haversineMeters, interpolateLine } from "./geo";
-import type { Coordinate, Itinerary, PlaceSuggestion, TripLeg } from "./types";
+import { haversineMeters, interpolateLine } from "./geo.js";
+import type { Coordinate, Itinerary, PlaceSuggestion, TripLeg } from "./types.js";
 
 function isoAt(base: Date, minutesFromNow: number): string {
   return new Date(base.getTime() + minutesFromNow * 60_000).toISOString();

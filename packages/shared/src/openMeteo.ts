@@ -1,5 +1,5 @@
-import type { CurrentWeather, DailyForecast, HourlyForecast } from "./types";
-import { locationKey } from "./geo";
+import type { CurrentWeather, DailyForecast, HourlyForecast } from "./types.js";
+import { locationKey } from "./geo.js";
 
 export interface OpenMeteoWeather {
   current: CurrentWeather;

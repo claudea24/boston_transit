@@ -9,3 +9,10 @@ dist/
 .DS_Store
 *.tsbuildinfo
 .vercel
+
+# Local tooling / session artifacts
+.claude/
+.playwright-mcp/
+
+# Screenshots captured during local e2e runs
+/*.png

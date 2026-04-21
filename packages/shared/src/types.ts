@@ -182,3 +182,33 @@ export interface GeocodingResult extends Coordinate {
   admin1?: string;
   timezone: string;
 }
+
+export interface StopPrediction {
+  agencyId: string;
+  tripId: string;
+  routeId?: string;
+  routeShortName?: string;
+  stopId: string;
+  stopSequence?: number;
+  predictedArrival?: string;
+  predictedDeparture?: string;
+  delaySeconds?: number;
+  vehicleId?: string;
+  updatedAt: string;
+}
+
+export interface StopPredictionRow {
+  id: string;
+  agency_id: string;
+  trip_id: string;
+  route_id: string | null;
+  route_short_name: string | null;
+  stop_id: string;
+  stop_sequence: number | null;
+  predicted_arrival: string | null;
+  predicted_departure: string | null;
+  delay_seconds: number | null;
+  vehicle_id: string | null;
+  updated_at: string;
+  created_at: string;
+}

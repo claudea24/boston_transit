@@ -1,10 +1,12 @@
 import { supabase } from "./supabase.js";
 import {
   bboxAroundPoint,
+  fetchMbtaTripUpdates,
   fetchVehiclesByBbox,
   fetchOpenMeteo,
   locationKey,
   type OpenMeteoWeather,
+  type StopPrediction,
   type VehiclePosition,
 } from "@weather/shared";
 
@@ -65,6 +67,18 @@ export async function pollVehicleData(): Promise<number> {
   return total;
 }
 
+export async function pollPredictions(): Promise<number> {
+  const predictions = await fetchMbtaTripUpdates();
+  if (predictions.length === 0) {
+    await sweepStalePredictions();
+    return 0;
+  }
+
+  await upsertPredictions(predictions);
+  await sweepStalePredictions();
+  return predictions.length;
+}
+
 async function getDistinctLocations(): Promise<DistinctLocation[]> {
   const { data, error } = await supabase
     .from("saved_locations")
@@ -78,8 +92,7 @@ async function getDistinctLocations(): Promise<DistinctLocation[]> {
   ]);
 
   const seedLocations = [
-    { latitude: 41.8781, longitude: -87.6298 },
-    { latitude: 40.7128, longitude: -74.006 },
+    { latitude: 42.3601, longitude: -71.0589 }, // Boston (MBTA)
   ];
 
   const seen = new Set<string>();
@@ -209,5 +222,46 @@ async function sweepStaleVehicles() {
 
   if (error && error.code !== "42P01") {
     console.warn("Unable to sweep stale vehicle rows:", error.message);
+  }
+}
+
+async function upsertPredictions(predictions: StopPrediction[]) {
+  const byKey = new Map<string, StopPrediction>();
+  for (const p of predictions) {
+    byKey.set(`${p.tripId}|${p.stopId}`, p);
+  }
+  const rows = [...byKey.values()].map((p) => ({
+    agency_id: p.agencyId,
+    trip_id: p.tripId,
+    route_id: p.routeId ?? null,
+    route_short_name: p.routeShortName ?? null,
+    stop_id: p.stopId,
+    stop_sequence: p.stopSequence ?? null,
+    predicted_arrival: p.predictedArrival ?? null,
+    predicted_departure: p.predictedDeparture ?? null,
+    delay_seconds: p.delaySeconds ?? null,
+    vehicle_id: p.vehicleId ?? null,
+    updated_at: p.updatedAt,
+  }));
+
+  const chunkSize = 500;
+  for (let i = 0; i < rows.length; i += chunkSize) {
+    const chunk = rows.slice(i, i + chunkSize);
+    const { error } = await supabase
+      .from("stop_predictions")
+      .upsert(chunk, { onConflict: "trip_id,stop_id" });
+    if (error) throw error;
+  }
+}
+
+async function sweepStalePredictions() {
+  const cutoff = new Date(Date.now() - 10 * 60_000).toISOString();
+  const { error } = await supabase
+    .from("stop_predictions")
+    .delete()
+    .lt("predicted_arrival", cutoff);
+
+  if (error && error.code !== "42P01") {
+    console.warn("Unable to sweep stale predictions:", error.message);
   }
 }

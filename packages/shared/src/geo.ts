@@ -1,4 +1,4 @@
-import type { Bounds, Coordinate } from "./types";
+import type { Bounds, Coordinate } from "./types.js";
 
 export function locationKey(lat: number, lon: number): string {
   return `${lat.toFixed(2)},${lon.toFixed(2)}`;
