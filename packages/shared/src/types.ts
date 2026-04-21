@@ -1,4 +1,24 @@
-// Current weather conditions
+export interface Coordinate {
+  latitude: number;
+  longitude: number;
+}
+
+export interface Bounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
+export interface PlaceSuggestion extends Coordinate {
+  id: string;
+  name: string;
+  country: string;
+  region?: string;
+  label: string;
+  timezone?: string;
+}
+
 export interface CurrentWeather {
   temperature: number;
   feelsLike: number;
@@ -12,9 +32,8 @@ export interface CurrentWeather {
   uvIndex: number;
 }
 
-// Single hour forecast
 export interface HourlyForecast {
-  time: string; // ISO 8601
+  time: string;
   temperature: number;
   precipitationProbability: number;
   precipitation: number;
@@ -24,9 +43,8 @@ export interface HourlyForecast {
   uvIndex: number;
 }
 
-// Single day forecast
 export interface DailyForecast {
-  date: string; // YYYY-MM-DD
+  date: string;
   weatherCode: number;
   tempMax: number;
   tempMin: number;
@@ -41,7 +59,6 @@ export interface DailyForecast {
   uvIndexMax: number;
 }
 
-// Full weather data stored in Supabase JSONB columns
 export interface WeatherData {
   current: CurrentWeather;
   hourly: HourlyForecast[];
@@ -49,20 +66,16 @@ export interface WeatherData {
   timezone: string;
 }
 
-// Saved location
-export interface SavedLocation {
+export interface SavedLocation extends Coordinate {
   id: string;
   userId: string;
   name: string;
-  latitude: number;
-  longitude: number;
   country: string;
   isDefault: boolean;
   displayOrder: number;
   createdAt: string;
 }
 
-// User preferences
 export interface UserPreferences {
   id: string;
   userId: string;
@@ -70,17 +83,6 @@ export interface UserPreferences {
   windUnit: "mph" | "kmh";
 }
 
-// Geocoding search result
-export interface GeocodingResult {
-  name: string;
-  latitude: number;
-  longitude: number;
-  country: string;
-  admin1?: string; // State/province
-  timezone: string;
-}
-
-// Supabase weather_data row
 export interface WeatherDataRow {
   id: string;
   location_key: string;
@@ -92,4 +94,91 @@ export interface WeatherDataRow {
   timezone: string;
   fetched_at: string;
   created_at: string;
+}
+
+export type VehicleMode =
+  | "bus"
+  | "rail"
+  | "tram"
+  | "ferry"
+  | "cable_car"
+  | "other";
+
+export interface VehiclePosition extends Coordinate {
+  agencyId: string;
+  vehicleId: string;
+  routeId?: string;
+  tripId?: string;
+  routeShortName?: string;
+  routeColor?: string;
+  headsign?: string;
+  mode: VehicleMode;
+  bearing?: number;
+  speedKmh?: number;
+  delaySeconds?: number;
+  stopSequence?: number;
+  updatedAt: string;
+}
+
+export interface VehiclePositionRow {
+  id: string;
+  agency_id: string;
+  vehicle_id: string;
+  route_id: string | null;
+  route_short_name: string | null;
+  route_color: string | null;
+  trip_id: string | null;
+  headsign: string | null;
+  mode: VehicleMode;
+  latitude: number;
+  longitude: number;
+  bearing: number | null;
+  speed_kmh: number | null;
+  delay_seconds: number | null;
+  stop_sequence: number | null;
+  updated_at: string;
+  created_at: string;
+}
+
+export interface TripLeg extends Coordinate {
+  id: string;
+  mode: "walk" | "bus" | "train" | "tram";
+  label: string;
+  fromName: string;
+  toName: string;
+  departureTime: string;
+  arrivalTime: string;
+  scheduledDepartureTime: string;
+  scheduledArrivalTime: string;
+  delaySeconds: number;
+  durationMinutes: number;
+  distanceMeters: number;
+  polyline: Coordinate[];
+  routeColor?: string;
+  vehicleId?: string;
+  covered?: boolean;
+}
+
+export interface Itinerary {
+  id: string;
+  summary: string;
+  durationMinutes: number;
+  walkingMeters: number;
+  waitMinutes: number;
+  transfers: number;
+  weatherScore: number;
+  modes: Array<TripLeg["mode"]>;
+  legs: TripLeg[];
+}
+
+export interface TripPlanResponse {
+  itineraries: Itinerary[];
+  source: "here" | "fallback";
+}
+
+export interface GeocodingResult extends Coordinate {
+  name: string;
+  country: string;
+  admin1?: string;
+  timezone: string;
 }
