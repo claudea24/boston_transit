@@ -68,23 +68,7 @@ export function VehiclesProvider({ children }: { children: React.ReactNode }) {
 
     async function loadVehicles() {
       await queryVehicles();
-
-      try {
-        await fetch("/api/vehicles/refresh", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            latitude,
-            longitude,
-          }),
-        });
-      } catch (refreshError) {
-        console.error("vehicles refresh failed", refreshError);
-      }
-
-      if (!cancelled) {
-        setLoading(false);
-      }
+      if (!cancelled) setLoading(false);
     }
 
     loadVehicles();
@@ -106,8 +90,16 @@ export function VehiclesProvider({ children }: { children: React.ReactNode }) {
       )
       .subscribe();
 
+    const pollTimer = setInterval(() => {
+      if (cancelled) return;
+      queryVehicles().catch((error) =>
+        console.error("vehicles poll requery failed", error)
+      );
+    }, 10_000);
+
     return () => {
       cancelled = true;
+      clearInterval(pollTimer);
       supabase.removeChannel(channel);
     };
   }, [bounds, currentLocation, supabase]);

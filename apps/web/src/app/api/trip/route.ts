@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildFallbackItineraries } from "@weather/shared";
 import type { Coordinate, Itinerary, PlaceSuggestion } from "@weather/shared";
+import { decodeHereFlexPolyline } from "@/lib/hereFlexPolyline";
 
 type HereSection = {
   type?: string;
@@ -8,6 +9,8 @@ type HereSection = {
   arrival?: { time?: string; place?: { originalLocation?: Coordinate } };
   transport?: { mode?: string; name?: string; color?: string };
   summary?: { duration?: number; length?: number };
+  polyline?: string;
+  travelSummary?: { duration?: number; length?: number };
 };
 
 type HereRoute = {
@@ -65,6 +68,18 @@ function mapHereRoutes(routes: HereRoute[], from: PlaceSuggestion, to: PlaceSugg
         1,
         Math.round((Date.parse(arrival) - Date.parse(departure)) / 60_000)
       );
+      let polyline: Coordinate[] = [legFrom, legTo];
+      if (section.polyline) {
+        try {
+          const decoded = decodeHereFlexPolyline(section.polyline);
+          if (decoded.coordinates.length >= 2) {
+            polyline = decoded.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
+          }
+        } catch (decodeError) {
+          console.warn("HERE polyline decode failed", decodeError);
+        }
+      }
+
       return {
         id: `${route.id ?? routeIndex}-${legIndex}`,
         mode: mapHereMode(section.transport?.mode),
@@ -79,8 +94,8 @@ function mapHereRoutes(routes: HereRoute[], from: PlaceSuggestion, to: PlaceSugg
         scheduledArrivalTime: arrival,
         delaySeconds: 0,
         durationMinutes,
-        distanceMeters: section.summary?.length ?? 0,
-        polyline: [legFrom, legTo],
+        distanceMeters: section.summary?.length ?? section.travelSummary?.length ?? 0,
+        polyline,
         routeColor: section.transport?.color ?? undefined,
         covered: section.type !== "pedestrian",
       };
