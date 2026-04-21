@@ -1,6 +1,7 @@
 "use client";
 
-import type { Itinerary } from "@weather/shared";
+import { useEffect, useState } from "react";
+import type { Itinerary, TripLeg } from "@weather/shared";
 import { useTripContext } from "@/context/TripContext";
 
 function delayLabel(delaySeconds: number) {
@@ -17,8 +18,49 @@ function delayClass(delaySeconds: number) {
   return "delay delay--bad";
 }
 
+function firstTransitLeg(itinerary: Itinerary): TripLeg | null {
+  return itinerary.legs.find((leg) => leg.mode !== "walk") ?? null;
+}
+
+function walkMinutesBefore(itinerary: Itinerary, transitLeg: TripLeg): number {
+  let total = 0;
+  for (const leg of itinerary.legs) {
+    if (leg === transitLeg) break;
+    if (leg.mode === "walk") total += leg.durationMinutes;
+  }
+  return total;
+}
+
+function formatClock(iso: string): string {
+  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function leaveCue(itinerary: Itinerary, now: number): string | null {
+  const transit = firstTransitLeg(itinerary);
+  if (!transit) return null;
+  const walkMin = walkMinutesBefore(itinerary, transit);
+  const departure = new Date(transit.departureTime).getTime();
+  const leaveAt = departure - walkMin * 60_000;
+  const leaveInMin = Math.round((leaveAt - now) / 60_000);
+  const clock = formatClock(transit.departureTime);
+  if (leaveInMin <= 0) {
+    return `Leave now — ${transit.label} departs at ${clock}`;
+  }
+  if (leaveInMin === 1) {
+    return `Leave in 1 min to catch ${transit.label} at ${clock}`;
+  }
+  if (leaveInMin > 90) return null;
+  return `Leave in ${leaveInMin} min to catch ${transit.label} at ${clock}`;
+}
+
 export default function ItineraryList() {
   const { itineraries, selectedItinerary, selectItinerary } = useTripContext();
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   if (itineraries.length === 0) {
     return (
@@ -48,6 +90,7 @@ export default function ItineraryList() {
       <div className="itinerary-list">
         {itineraries.map((itinerary: Itinerary) => {
           const active = selectedItinerary?.id === itinerary.id;
+          const cue = leaveCue(itinerary, now);
           return (
             <button
               key={itinerary.id}
@@ -64,6 +107,7 @@ export default function ItineraryList() {
                 </div>
                 <span className="score-chip">score {itinerary.weatherScore}</span>
               </div>
+              {cue ? <p className="leave-cue">{cue}</p> : null}
               <div className="mode-row">
                 {itinerary.legs.map((leg) => (
                   <span key={leg.id} className={`mode-pill mode-pill--${leg.mode}`}>

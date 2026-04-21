@@ -4,38 +4,39 @@ import SearchCard from "@/components/trip/SearchCard";
 import ItineraryList from "@/components/trip/ItineraryList";
 import TransitMap from "@/components/map/TransitMap";
 import WeatherPill from "@/components/weather/WeatherPill";
+import LiveDepartures from "@/components/transit/LiveDepartures";
 import { useLocationContext } from "@/context/LocationContext";
+import { useTripContext } from "@/context/TripContext";
+import { useVehiclesContext } from "@/context/VehiclesContext";
 
 export default function DashboardPage() {
-  const { loading, isDemoMode } = useLocationContext();
+  const { loading } = useLocationContext();
+  const { itineraries } = useTripContext();
+  const { vehicles } = useVehiclesContext();
 
   if (loading) {
     return <main className="page-shell page-shell--loading">Loading dashboard...</main>;
   }
 
   return (
-    <main className="page-shell">
-      <div className="hero-grid">
+    <main className="map-app">
+      <TransitMap />
+      <div className="map-overlay map-overlay--left-stack">
         <SearchCard />
+        {itineraries.length > 0 ? <ItineraryList /> : null}
+      </div>
+      <div className="map-overlay map-overlay--top-right">
         <WeatherPill />
       </div>
-      <div className="dashboard-grid">
-        <TransitMap />
-        <ItineraryList />
-      </div>
-      <section className="panel panel--compact">
-        <div className="panel__header">
-          <div>
-            <p className="eyebrow">Status</p>
-            <h2>{isDemoMode ? "Demo city active" : "Supabase-backed profile active"}</h2>
-          </div>
+      <aside className="map-overlay map-overlay--right">
+        <LiveDepartures />
+      </aside>
+      <div className="map-overlay map-overlay--bottom-left">
+        <div className="coverage-chip">
+          <span className="coverage-chip__dot" />
+          MBTA Boston · {vehicles.length} live vehicles
         </div>
-        <p className="empty-copy">
-          Weather is real and stored in Supabase. Transit trips and vehicle refresh prefer upstream
-          providers when keys are configured and fall back to deterministic local data when they
-          are not.
-        </p>
-      </section>
+      </div>
     </main>
   );
 }

@@ -3,13 +3,16 @@
     "playwright": {
       "command": "npx",
       "args": [
-        "-y",
-        "@playwright/mcp@latest"
+        "@playwright/mcp"
       ]
     },
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=rybxmctxshbbqoaqbttj"
+    },
+    "railway": {
+      "type": "http",
+      "url": "https://mcp.railway.com"
     }
   }
 }

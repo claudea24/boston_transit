@@ -16,13 +16,11 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider>
-      <html lang="en">
-        <body className="min-h-screen text-white">
+      <html lang="en" suppressHydrationWarning>
+        <body className="min-h-screen text-white" suppressHydrationWarning>
           <ClientProviders>
             <Navbar />
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 pb-16">
-              {children}
-            </div>
+            {children}
           </ClientProviders>
         </body>
       </html>

@@ -12,6 +12,7 @@
   },
   "packageManager": "npm@11.6.2",
   "devDependencies": {
+    "@playwright/mcp": "^0.0.53",
     "turbo": "^2"
   }
 }
