@@ -3,9 +3,9 @@
 A live transit dashboard for Boston/MBTA with weather-aware trip planning. The site opens to a full-screen MapLibre map of Boston, shows every MBTA bus, subway, commuter-rail, and ferry vehicle moving in real time, lets you tap any stop to see the next arrivals, and plans trips between two places with routes drawn along the actual tracks and streets.
 
 **Live URLs**
-- Frontend: TBD (Vercel)
-- Worker: Railway project `vivacious-patience` (running)
-- Supabase project: `rybxmctxshbbqoaqbttj`
+- Frontend (Vercel): https://boston-transit.vercel.app — [dashboard](https://vercel.com/claudea24s-projects/boston-transit)
+- Worker (Railway): https://vivacious-patience-production-570c.up.railway.app — [dashboard](https://railway.com/project/vivacious-patience) (health: `/healthz`)
+- Supabase project `rybxmctxshbbqoaqbttj`: [dashboard](https://supabase.com/dashboard/project/rybxmctxshbbqoaqbttj)
 
 ---
 
