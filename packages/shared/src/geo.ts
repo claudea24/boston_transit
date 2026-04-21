@@ -52,19 +52,3 @@ export function interpolateLine(
   });
 }
 
-export function boundsForPoints(points: Coordinate[], padding = 0.12): Bounds {
-  const latitudes = points.map((point) => point.latitude);
-  const longitudes = points.map((point) => point.longitude);
-  const north = Math.max(...latitudes);
-  const south = Math.min(...latitudes);
-  const east = Math.max(...longitudes);
-  const west = Math.min(...longitudes);
-  const latPad = Math.max((north - south) * padding, 0.03);
-  const lonPad = Math.max((east - west) * padding, 0.03);
-  return {
-    north: north + latPad,
-    south: south - latPad,
-    east: east + lonPad,
-    west: west - lonPad,
-  };
-}

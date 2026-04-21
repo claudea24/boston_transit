@@ -68,8 +68,6 @@ export function WeatherProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const latitude = currentLocation.latitude;
-    const longitude = currentLocation.longitude;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -89,29 +87,8 @@ export function WeatherProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      if (data) {
-        setWeather(rowToWeather(data as WeatherDataRow));
-        setLoading(false);
-        return;
-      }
-
-      try {
-        await fetch("/api/weather/refresh", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            latitude,
-            longitude,
-          }),
-        });
-      } catch (refreshError) {
-        console.error("weather refresh failed", refreshError);
-      }
-
-      if (!cancelled) {
-        setWeather(null);
-        setLoading(false);
-      }
+      setWeather(data ? rowToWeather(data as WeatherDataRow) : null);
+      setLoading(false);
     }
 
     loadWeather();

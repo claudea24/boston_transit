@@ -1,5 +1,5 @@
 import GtfsRealtimeBindings from "gtfs-realtime-bindings";
-import { bboxAroundPoint, centerOfBounds, haversineMeters } from "./geo.js";
+import { centerOfBounds, haversineMeters } from "./geo.js";
 import type { Bounds, Coordinate, VehicleMode, VehiclePosition } from "./types.js";
 
 interface VehicleFeedConfig {
@@ -293,9 +293,3 @@ export async function fetchVehiclesByBbox(bounds: Bounds): Promise<VehiclePositi
   return vehicles;
 }
 
-export async function fetchVehiclePositions(
-  latitude: number,
-  longitude: number
-): Promise<VehiclePosition[]> {
-  return fetchVehiclesByBbox(bboxAroundPoint(latitude, longitude));
-}

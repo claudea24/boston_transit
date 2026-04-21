@@ -80,12 +80,6 @@ export async function pollPredictions(): Promise<number> {
 }
 
 async function getDistinctLocations(): Promise<DistinctLocation[]> {
-  const { data, error } = await supabase
-    .from("saved_locations")
-    .select("latitude, longitude");
-
-  if (error) throw error;
-
   const [savedPlaces, preferenceCentroids] = await Promise.all([
     loadOptionalLocations("saved_places"),
     loadActiveCityCentroids(),
@@ -97,7 +91,7 @@ async function getDistinctLocations(): Promise<DistinctLocation[]> {
 
   const seen = new Set<string>();
   const unique: DistinctLocation[] = [];
-  for (const row of [...seedLocations, ...(data ?? []), ...savedPlaces, ...preferenceCentroids]) {
+  for (const row of [...seedLocations, ...savedPlaces, ...preferenceCentroids]) {
     const key = locationKey(row.latitude, row.longitude);
     if (!seen.has(key)) {
       seen.add(key);
