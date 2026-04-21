@@ -1,1 +1,441 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans:
+    "Instrument Sans", "Avenir Next", "Segoe UI", sans-serif;
+}
+
+:root {
+  --bg: #07141d;
+  --bg-soft: rgba(10, 27, 38, 0.68);
+  --panel: rgba(12, 24, 33, 0.78);
+  --panel-line: rgba(255, 255, 255, 0.08);
+  --text: #e8f3f5;
+  --muted: rgba(232, 243, 245, 0.64);
+  --accent: #6ee7b7;
+  --accent-strong: #0ea5a4;
+  --orange: #f97316;
+  --blue: #38bdf8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(52, 211, 153, 0.18), transparent 26%),
+    radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.14), transparent 32%),
+    linear-gradient(180deg, #08131c 0%, #0d1922 48%, #071017 100%);
+  background-attachment: fixed;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.navbar-shell {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(4, 10, 15, 0.72);
+  backdrop-filter: blur(20px);
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.85rem;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  color: #04222b;
+  font-weight: 800;
+}
+
+.navbar-subtitle {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.nav-button,
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  transition: transform 120ms ease, background 120ms ease;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  border: none;
+  color: #04222b;
+  font-weight: 700;
+}
+
+.nav-button:hover,
+.primary-button:hover {
+  transform: translateY(-1px);
+}
+
+.page-shell {
+  padding-top: 1.5rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.page-shell--loading {
+  min-height: 50vh;
+  place-items: center;
+}
+
+.hero-grid,
+.dashboard-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.hero-grid {
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.85fr);
+}
+
+.dashboard-grid {
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
+  align-items: start;
+}
+
+.panel,
+.search-card,
+.map-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--panel-line);
+  border-radius: 1.5rem;
+  background: var(--panel);
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(22px);
+}
+
+.glass-card {
+  border: 1px solid var(--panel-line);
+  border-radius: 1.25rem;
+  background: var(--panel);
+  backdrop-filter: blur(22px);
+}
+
+.glass-card-subtle {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.panel,
+.panel--compact,
+.search-card {
+  padding: 1.1rem;
+}
+
+.panel--compact {
+  min-height: 9.5rem;
+}
+
+.panel__header,
+.search-card__header,
+.map-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.panel__header h2,
+.search-card__header h1,
+.map-panel__header h2 {
+  margin: 0.15rem 0 0;
+  font-size: clamp(1.15rem, 2.2vw, 1.9rem);
+  line-height: 1.05;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.search-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.search-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.search-field span,
+.muted-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.search-field input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  outline: none;
+}
+
+.search-results {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.9rem;
+}
+
+.search-result {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 0.95rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+  text-align: left;
+}
+
+.search-result span,
+.search-card__footer,
+.empty-copy,
+.itinerary-card p,
+.leg-row p {
+  color: var(--muted);
+}
+
+.search-card__footer {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.status-error {
+  color: #fca5a5;
+}
+
+.weather-pill {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.weather-pill strong {
+  font-size: 2.3rem;
+  line-height: 1;
+}
+
+.weather-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  color: var(--muted);
+}
+
+.weather-dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 0.3rem rgba(110, 231, 183, 0.12);
+}
+
+.map-panel {
+  padding: 1rem;
+}
+
+.map-panel__status {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.map-surface {
+  position: relative;
+  min-height: 32rem;
+  border-radius: 1.2rem;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(1, 14, 22, 0.3), rgba(6, 35, 43, 0.76)),
+    linear-gradient(180deg, rgba(21, 65, 58, 0.2), rgba(17, 24, 39, 0.4));
+}
+
+.map-grid,
+.map-surface__weather,
+.map-svg {
+  position: absolute;
+  inset: 0;
+}
+
+.map-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 3.5rem 3.5rem;
+}
+
+.map-surface__weather {
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.1), transparent 18%),
+    radial-gradient(circle at 72% 34%, rgba(56, 189, 248, 0.12), transparent 22%),
+    radial-gradient(circle at 48% 74%, rgba(110, 231, 183, 0.1), transparent 24%);
+}
+
+.map-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.map-vehicle {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.itinerary-list,
+.leg-stack {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.itinerary-card {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 1.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
+  text-align: left;
+}
+
+.itinerary-card.is-active {
+  border-color: rgba(110, 231, 183, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(110, 231, 183, 0.18);
+}
+
+.itinerary-card__top,
+.leg-row,
+.mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.mode-row {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin: 0.8rem 0;
+}
+
+.mode-pill,
+.score-chip,
+.delay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.85rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+}
+
+.score-chip {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+}
+
+.mode-pill {
+  text-transform: capitalize;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.mode-pill--walk {
+  background: rgba(248, 250, 252, 0.14);
+}
+
+.mode-pill--bus {
+  background: rgba(249, 115, 22, 0.14);
+}
+
+.mode-pill--train,
+.mode-pill--tram {
+  background: rgba(56, 189, 248, 0.14);
+}
+
+.delay--good {
+  background: rgba(34, 197, 94, 0.16);
+  color: #bbf7d0;
+}
+
+.delay--warn {
+  background: rgba(250, 204, 21, 0.16);
+  color: #fde68a;
+}
+
+.delay--bad {
+  background: rgba(248, 113, 113, 0.16);
+  color: #fecaca;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.56;
+    transform: scale(0.92);
+  }
+}
+
+@media (max-width: 980px) {
+  .hero-grid,
+  .dashboard-grid,
+  .search-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-surface {
+    min-height: 24rem;
+  }
+
+  .search-card__footer,
+  .panel__header,
+  .search-card__header,
+  .map-panel__header {
+    flex-direction: column;
+  }
+}

@@ -1,41 +1,61 @@
-import { pollWeatherData } from "./poller.js";
+try {
+  process.loadEnvFile(".env.local");
+  console.log(
+    `Loaded .env.local from ${process.cwd()} — SUPABASE_URL set: ${Boolean(
+      process.env.SUPABASE_URL
+    )}`
+  );
+} catch (err) {
+  console.warn(
+    `Could not load .env.local from ${process.cwd()}:`,
+    (err as Error).message
+  );
+}
 
-const POLL_INTERVAL_MS = parseInt(
-  process.env.POLL_INTERVAL_MS || "300000",
-  10
-);
+const WEATHER_POLL_INTERVAL_MS = parseInt(process.env.WEATHER_POLL_INTERVAL_MS || "60000", 10);
+const VEHICLE_POLL_INTERVAL_MS = parseInt(process.env.VEHICLE_POLL_INTERVAL_MS || "15000", 10);
 
 async function main() {
-  console.log(
-    `Weather worker started. Polling every ${POLL_INTERVAL_MS / 1000}s`
-  );
+  const { pollVehicleData, pollWeatherData } = await import("./poller.js");
 
-  // Run immediately on startup
-  await runPollCycle();
+  console.log("Transit + weather worker started.");
 
-  // Then poll on interval
-  const interval = setInterval(runPollCycle, POLL_INTERVAL_MS);
+  async function runWeatherCycle() {
+    const start = Date.now();
+    try {
+      const count = await pollWeatherData();
+      const duration = ((Date.now() - start) / 1000).toFixed(1);
+      console.log(`Weather poll complete: ${count} locations in ${duration}s`);
+    } catch (error) {
+      console.error("Weather poll failed:", error);
+    }
+  }
 
-  // Graceful shutdown
+  async function runVehicleCycle() {
+    const start = Date.now();
+    try {
+      const count = await pollVehicleData();
+      const duration = ((Date.now() - start) / 1000).toFixed(1);
+      console.log(`Vehicle poll complete: ${count} vehicles in ${duration}s`);
+    } catch (error) {
+      console.error("Vehicle poll failed:", error);
+    }
+  }
+
+  await Promise.all([runWeatherCycle(), runVehicleCycle()]);
+
+  const weatherInterval = setInterval(runWeatherCycle, WEATHER_POLL_INTERVAL_MS);
+  const vehicleInterval = setInterval(runVehicleCycle, VEHICLE_POLL_INTERVAL_MS);
+
   const shutdown = () => {
     console.log("Shutting down worker...");
-    clearInterval(interval);
+    clearInterval(weatherInterval);
+    clearInterval(vehicleInterval);
     process.exit(0);
   };
 
   process.on("SIGTERM", shutdown);
   process.on("SIGINT", shutdown);
-}
-
-async function runPollCycle() {
-  const start = Date.now();
-  try {
-    const count = await pollWeatherData();
-    const duration = ((Date.now() - start) / 1000).toFixed(1);
-    console.log(`Poll complete: ${count} locations fetched in ${duration}s`);
-  } catch (error) {
-    console.error("Poll cycle failed:", error);
-  }
 }
 
 main();
