@@ -10,6 +10,7 @@ import {
 import type { Itinerary, PlaceSuggestion } from "@weather/shared";
 import { rankItineraries } from "@/lib/ranking";
 import { useWeatherContext } from "./WeatherContext";
+import { withHereKey } from "@/lib/userHereKey";
 
 interface TripContextValue {
   from: PlaceSuggestion | null;
@@ -49,7 +50,7 @@ export function TripProvider({ children }: { children: React.ReactNode }) {
 
     const response = await fetch("/api/trip", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: withHereKey({ "content-type": "application/json" }),
       body: JSON.stringify({ from: fromPlace, to: toPlace }),
     });
     const data = (await response.json()) as

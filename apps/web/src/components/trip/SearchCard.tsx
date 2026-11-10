@@ -5,6 +5,7 @@ import type { PlaceSuggestion } from "@weather/shared";
 import { useFavoritesContext } from "@/context/FavoritesContext";
 import { useLocationContext } from "@/context/LocationContext";
 import { useTripContext } from "@/context/TripContext";
+import { withHereKey } from "@/lib/userHereKey";
 
 type SearchField = "from" | "to";
 
@@ -18,7 +19,7 @@ const BOSTON_SUGGESTIONS: PlaceSuggestion[] = [
 ];
 
 async function searchPlaces(query: string): Promise<PlaceSuggestion[]> {
-  const response = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+  const response = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`, { headers: withHereKey() });
   const data = (await response.json()) as { results?: PlaceSuggestion[] };
   return data.results ?? [];
 }

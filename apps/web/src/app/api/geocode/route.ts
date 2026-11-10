@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveHereKey } from "@/lib/hereKey";
 import type { PlaceSuggestion } from "@weather/shared";
 
 const BOSTON_BBOX = { west: -71.6, south: 42.05, east: -70.7, north: 42.65 };
@@ -69,7 +70,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ results: [] });
   }
 
-  const hereApiKey = process.env.HERE_API_KEY;
+  const hereApiKey = resolveHereKey(req);
 
   try {
     if (hereApiKey) {

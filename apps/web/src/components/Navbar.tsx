@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import HereKeyButton from "./HereKeyButton";
 
 export default function Navbar() {
   return (
@@ -18,6 +19,7 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-3">
+          <HereKeyButton />
           <SignedOut>
             <Link href="/sign-in" className="nav-button">
               Sign in

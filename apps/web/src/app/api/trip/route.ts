@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveHereKey } from "@/lib/hereKey";
 import { buildFallbackItineraries } from "@weather/shared";
 import type { Coordinate, Itinerary, PlaceSuggestion } from "@weather/shared";
 import { decodeHereFlexPolyline } from "@/lib/hereFlexPolyline";
@@ -133,7 +134,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Both from and to are required." }, { status: 400 });
   }
 
-  const hereApiKey = process.env.HERE_API_KEY;
+  const hereApiKey = resolveHereKey(req);
 
   try {
     if (hereApiKey) {
